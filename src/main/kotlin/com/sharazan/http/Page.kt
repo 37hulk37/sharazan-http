@@ -1,4 +1,4 @@
-package com.sharazan.http.core
+package com.sharazan.http
 
 data class Page<T>(
     val page: Int,

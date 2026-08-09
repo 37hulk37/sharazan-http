@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.3.0"
+    kotlin("plugin.serialization") version "2.3.0"
     `maven-publish`
 }
 
@@ -14,6 +15,7 @@ repositories {
 dependencies {
     implementation("com.sharazan:core:1.0-SNAPSHOT")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.11.0")
     runtimeOnly("org.jetbrains.kotlin:kotlin-reflect:2.3.20-RC")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")

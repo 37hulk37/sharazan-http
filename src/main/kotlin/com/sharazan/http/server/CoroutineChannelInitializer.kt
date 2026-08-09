@@ -1,6 +1,6 @@
 package com.sharazan.http.server
 
-import com.sharazan.http.request.handler.CoroutineHttpHandler
+import com.sharazan.http.handler.CoroutineHttpHandler
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.socket.SocketChannel
 import io.netty.handler.codec.http.HttpObjectAggregator

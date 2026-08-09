@@ -1,7 +1,7 @@
 package com.sharazan.http.server
 
 import com.sharazan.core.Startable
-import com.sharazan.http.request.handler.AppHttpHandler
+import com.sharazan.http.handler.CoroutineHttpHandler
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelOption
@@ -13,11 +13,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.http4k.server.Http4kServer
 import java.io.Closeable
-import java.util.concurrent.TimeUnit
 
 class CoroutineServer(
-    private val port: Int = 8080,
-    private val handler: AppHttpHandler
+    private val port: Int,
+    private val handlerProvider: () -> CoroutineHttpHandler,
 ): Http4kServer, Startable, Closeable {
 
     private val bossGroup = NioEventLoopGroup(1)
@@ -28,7 +27,9 @@ class CoroutineServer(
     private var closeFuture: ChannelFuture? = null
 
     override fun start(): Http4kServer = apply {
-        val channel = getBootstrap()
+        val handler = handlerProvider()
+
+        val channel = getBootstrap(handler)
             .bind(port)
             .sync()
             .channel()
@@ -39,17 +40,10 @@ class CoroutineServer(
     override fun stop(): Http4kServer = apply {
         serverScope.cancel()
 
-        workerGroup.shutdownGracefully(
-            100000L,
-            100000L,
-            TimeUnit.MILLISECONDS
-        ).sync()
-
-        bossGroup.shutdownGracefully(
-            100000L / 2,
-            100000L,
-            TimeUnit.MILLISECONDS
-        ).sync()
+        workerGroup.shutdownGracefully()
+            .sync()
+        bossGroup.shutdownGracefully()
+            .sync()
     }
 
     override fun port(): Int = port
@@ -62,7 +56,7 @@ class CoroutineServer(
         stop()
     }
 
-    private fun getBootstrap(): ServerBootstrap {
+    private fun getBootstrap(handler: CoroutineHttpHandler): ServerBootstrap {
         val bootstrap = ServerBootstrap()
 
         bootstrap.group(bossGroup, workerGroup)

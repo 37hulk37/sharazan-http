@@ -5,8 +5,7 @@ import org.http4k.format.Jackson.json
 import org.http4k.routing.path
 
 inline fun <reified T: Any> Request.getBody(): T
-    = this.json(body.text)
-        .json<T>()
+    = this.json()
 
 inline fun <reified T: Any> Request.getPathParam(name: String): T? {
     val param = this.path(name)

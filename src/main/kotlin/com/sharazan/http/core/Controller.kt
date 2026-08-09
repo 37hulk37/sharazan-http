@@ -1,6 +1,5 @@
-package com.sharazan.http.controller
+package com.sharazan.http.core
 
-import com.sharazan.http.request.routing.Route
 import org.koin.core.component.KoinComponent
 
 interface Controller: KoinComponent {
