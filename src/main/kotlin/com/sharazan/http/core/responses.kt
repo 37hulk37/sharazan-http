@@ -8,6 +8,9 @@ import org.http4k.core.Status
 import org.http4k.format.Jackson
 import org.http4k.format.Jackson.json
 import org.http4k.lens.contentType
+import org.slf4j.LoggerFactory
+
+private val logger = LoggerFactory.getLogger("com.sharazan.http.core.Responses")
 
 fun <T: Any> ok(body: T): Response
     = Response(Status.OK)
@@ -34,7 +37,7 @@ fun error(t: Throwable): Response {
     val apiException = t as? ApiException
 
     if (apiException == null) {
-        t.printStackTrace()
+        logger.error("Unhandled exception", t)
     }
 
     return Response(apiException?.status ?: Status.BAD_REQUEST)

@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.http4k.server.Http4kServer
+import org.slf4j.LoggerFactory
 import java.io.Closeable
 
 class CoroutineServer(
@@ -19,12 +20,16 @@ class CoroutineServer(
     private val handlerProvider: () -> CoroutineHttpHandler,
 ): Http4kServer, Startable, Closeable {
 
+    private val logger = LoggerFactory.getLogger(CoroutineServer::class.java)
+
+
     private val bossGroup = NioEventLoopGroup(1)
     private val workerGroup = NioEventLoopGroup(2)
 
     private val serverScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private var closeFuture: ChannelFuture? = null
+
 
     override fun start(): Http4kServer = apply {
         val handler = handlerProvider()
@@ -35,15 +40,17 @@ class CoroutineServer(
             .channel()
 
         closeFuture = channel?.closeFuture()
+
+        logger.info("Server started on port $port")
     }
 
     override fun stop(): Http4kServer = apply {
         serverScope.cancel()
 
-        workerGroup.shutdownGracefully()
-            .sync()
-        bossGroup.shutdownGracefully()
-            .sync()
+        workerGroup.shutdownGracefully().sync()
+        bossGroup.shutdownGracefully().sync()
+
+        logger.info("Server stopped")
     }
 
     override fun port(): Int = port

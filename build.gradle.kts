@@ -14,6 +14,7 @@ repositories {
 
 dependencies {
     implementation("com.sharazan:core:1.0-SNAPSHOT")
+    implementation("com.sharazan:logging:1.0-SNAPSHOT")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.11.0")
     runtimeOnly("org.jetbrains.kotlin:kotlin-reflect:2.3.20-RC")

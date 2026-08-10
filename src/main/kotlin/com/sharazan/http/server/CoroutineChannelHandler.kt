@@ -1,32 +1,30 @@
 package com.sharazan.http.server
 
+import com.sharazan.core.withContext
 import com.sharazan.http.core.error
 import com.sharazan.http.handler.CoroutineHttpHandler
-import io.netty.buffer.ByteBufUtil
-import io.netty.buffer.Unpooled
+import com.sharazan.logging.METHOD_MDC_KEY
+import com.sharazan.logging.PATH_MDC_KEY
+import com.sharazan.logging.REQUEST_ID_MDC_KEY
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
-import io.netty.handler.codec.http.DefaultFullHttpResponse
 import io.netty.handler.codec.http.FullHttpRequest
-import io.netty.handler.codec.http.FullHttpResponse
-import io.netty.handler.codec.http.HttpHeaderNames
-import io.netty.handler.codec.http.HttpResponseStatus
-import io.netty.handler.codec.http.HttpVersion
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.slf4j.MDCContext
 import kotlinx.coroutines.sync.Semaphore
 import org.http4k.core.*
-import org.http4k.routing.RequestWithContext
-import org.http4k.server.supportedOrNull
-import java.io.ByteArrayInputStream
-import java.nio.charset.StandardCharsets
+import org.slf4j.LoggerFactory
+import java.util.UUID
 
 class CoroutineChannelHandler(
     private val handler: CoroutineHttpHandler,
     private val serverScope: CoroutineScope,
 ): SimpleChannelInboundHandler<FullHttpRequest>() {
+
+    private val logger = LoggerFactory.getLogger(CoroutineChannelHandler::class.java)
 
     private val limiter = Semaphore(100)
 
@@ -35,29 +33,48 @@ class CoroutineChannelHandler(
         msg: FullHttpRequest
     ) {
         if (!limiter.tryAcquire()) {
+            logger.warn("Too many requests, backpressure limit reached")
+
             ctx.writeAndFlush(error("Too many requests").toNettyResponse())
             return
         }
 
-        val request = msg.toRequest()
+        val request = try {
+            msg.toRequest()
+        } catch (t: Throwable) {
+            logger.error("Failed to parse incoming request", t)
+            limiter.release()
 
-        val serverJob = serverScope.launch {
-            try {
-                val response = try {
-                    handler.call(request)
-                } catch (c: CancellationException) {
-                    throw c
-                } catch (t: Throwable) {
-                    error(t)
-                }
+            ctx.writeAndFlush(error(t).toNettyResponse())
+            return
+        }
 
-                ctx.writeAndFlush(response.toNettyResponse())
-            } finally {
-                limiter.release()
-            }
+        val requestId = UUID.randomUUID().toString()
+        val contextualRequest = request.withContext(REQUEST_ID_MDC_KEY, requestId)
+
+        val mdcContext = MDCContext(mapOf(
+            METHOD_MDC_KEY to request.method.toString(),
+            PATH_MDC_KEY to request.uri.path,
+        ))
+
+        val serverJob = serverScope.launch(context = mdcContext) {
+            callHandler(contextualRequest, ctx)
         }
 
         cancelJobOnStop(serverJob, ctx)
+    }
+
+    private suspend fun callHandler(request: Request, ctx: ChannelHandlerContext) {
+        try {
+            val result = handler.call(request)
+
+            ctx.writeAndFlush(result.toNettyResponse())
+        } catch (c: CancellationException) {
+            logger.error("Cancelling server job", c)
+            ctx.writeAndFlush(error(c).toNettyResponse())
+        } finally {
+            limiter.release()
+        }
     }
 
     private fun cancelJobOnStop(handlerJob: Job, ctx: ChannelHandlerContext) {
@@ -68,33 +85,4 @@ class CoroutineChannelHandler(
             }
     }
 
-}
-
-private fun FullHttpRequest.toRequest(): Request {
-    val httpMethod = Method.supportedOrNull(method().name())
-        ?: throw RuntimeException("there is no http method like ${method().name()}")
-
-    val delegate = MemoryRequest(
-        httpMethod,
-        Uri.of(uri()),
-        headers().map { it.key to it.value },
-        Body(ByteArrayInputStream(ByteBufUtil.getBytes(content()))),
-    )
-
-    return RequestWithContext(delegate, emptyMap())
-}
-
-private fun Response.toNettyResponse(): FullHttpResponse {
-    val content = Unpooled.copiedBuffer(bodyString(), StandardCharsets.UTF_8)
-
-    val nettyResponse = DefaultFullHttpResponse(
-        HttpVersion.HTTP_1_1,
-        HttpResponseStatus.valueOf(status.code, status.description),
-        content,
-    )
-
-    headers.forEach { (name, value) -> value?.let { nettyResponse.headers().add(name, it) } }
-    nettyResponse.headers().set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes())
-
-    return nettyResponse
 }
