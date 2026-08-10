@@ -1,14 +1,13 @@
 package com.sharazan.http.handler
 
 import com.sharazan.http.core.Controller
-import com.sharazan.http.core.error
 import com.sharazan.http.core.Route
+import com.sharazan.http.core.error
 import org.http4k.core.Request
 import org.http4k.core.Response
 import org.http4k.routing.RequestWithContext
 import org.koin.core.Koin
 import org.slf4j.LoggerFactory
-import kotlin.time.measureTimedValue
 
 class EventLoopHandler(koin: Koin): CoroutineHttpHandler {
 
@@ -26,19 +25,7 @@ class EventLoopHandler(koin: Koin): CoroutineHttpHandler {
             return error("There is no route for ${request.method} ${request.uri.path}")
         }
 
-        val (response, duration) = measureTimedValue {
-            route.handler.call(RequestWithContext(request, route.uriTemplate))
-        }
-
-        logger.trace(
-            "{} {} -> {} ({}ms)",
-            request.method,
-            request.uri.path,
-            response.status,
-            duration.inWholeMilliseconds
-        )
-
-        return response
+        return route.handler.call(RequestWithContext(request, route.uriTemplate))
     }
 
 }

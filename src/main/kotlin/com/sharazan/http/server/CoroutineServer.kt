@@ -1,6 +1,6 @@
 package com.sharazan.http.server
 
-import com.sharazan.core.Startable
+import com.sharazan.core.Lifecycle
 import com.sharazan.http.handler.CoroutineHttpHandler
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelFuture
@@ -13,12 +13,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.http4k.server.Http4kServer
 import org.slf4j.LoggerFactory
-import java.io.Closeable
 
 class CoroutineServer(
     private val port: Int,
     private val handlerProvider: () -> CoroutineHttpHandler,
-): Http4kServer, Startable, Closeable {
+): Http4kServer, Lifecycle {
 
     private val logger = LoggerFactory.getLogger(CoroutineServer::class.java)
 

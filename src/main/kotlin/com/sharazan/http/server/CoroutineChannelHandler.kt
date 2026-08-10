@@ -70,8 +70,10 @@ class CoroutineChannelHandler(
 
             ctx.writeAndFlush(result.toNettyResponse())
         } catch (c: CancellationException) {
-            logger.error("Cancelling server job", c)
-            ctx.writeAndFlush(error(c).toNettyResponse())
+            throw c
+        } catch (t: Throwable) {
+            logger.error("Cancelling server job", t)
+            ctx.writeAndFlush(error(t).toNettyResponse())
         } finally {
             limiter.release()
         }
