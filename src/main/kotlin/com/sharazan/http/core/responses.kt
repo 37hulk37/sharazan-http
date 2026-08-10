@@ -6,7 +6,6 @@ import org.http4k.core.ContentType
 import org.http4k.core.Response
 import org.http4k.core.Status
 import org.http4k.format.Jackson
-import org.http4k.format.Jackson.json
 import org.http4k.lens.contentType
 import org.slf4j.LoggerFactory
 
@@ -50,7 +49,3 @@ fun error(cause: String): Response
     = Response(Status.BAD_REQUEST)
         .contentType(ContentType.APPLICATION_JSON)
         .body(Jackson.asFormatString(cause))
-
-
-fun error(): Response
-    = Response(Status.BAD_REQUEST)
