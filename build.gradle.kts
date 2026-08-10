@@ -21,7 +21,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.2")
 
-    api("org.http4k:http4k-core:6.31.1.0")
     implementation("org.http4k:http4k-format-jackson:6.31.1.0")
 
     implementation("io.netty:netty-all:4.2.10.Final")
