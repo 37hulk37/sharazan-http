@@ -28,7 +28,7 @@ class ServerHandler(
 
         val response = handleRequest(processedRequest)
 
-        return pipeline.postProcess(response)
+        return pipeline.postProcess(processedRequest, response)
     }
 
     private suspend fun handleRequest(request: Request): Response {
