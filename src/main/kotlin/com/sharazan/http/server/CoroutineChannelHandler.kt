@@ -1,8 +1,9 @@
 package com.sharazan.http.server
 
+import com.sharazan.core.Handler
+import com.sharazan.core.pipeline.Pipeline
 import com.sharazan.core.withContext
 import com.sharazan.http.core.error
-import com.sharazan.http.handler.CoroutineHttpHandler
 import com.sharazan.logging.METHOD_MDC_KEY
 import com.sharazan.logging.PATH_MDC_KEY
 import com.sharazan.logging.REQUEST_ID_MDC_KEY
@@ -20,13 +21,14 @@ import org.slf4j.LoggerFactory
 import java.util.UUID
 
 class CoroutineChannelHandler(
-    private val handler: CoroutineHttpHandler,
+    private val handler: Handler,
     private val serverScope: CoroutineScope,
 ): SimpleChannelInboundHandler<FullHttpRequest>() {
 
     private val logger = LoggerFactory.getLogger(CoroutineChannelHandler::class.java)
 
     private val limiter = Semaphore(100)
+
 
     override fun channelRead0(
         ctx: ChannelHandlerContext,
@@ -39,34 +41,31 @@ class CoroutineChannelHandler(
             return
         }
 
-        val request = try {
+        val request = getRequest(msg, ctx)
+            ?: throw RuntimeException("request is null")
+
+        val serverJob = serverScope.launch {
+            execute(request, ctx)
+        }
+
+        cancelJobOnStop(serverJob, ctx)
+    }
+
+    private fun getRequest(msg: FullHttpRequest, ctx: ChannelHandlerContext): Request? =
+        try {
             msg.toRequest()
         } catch (t: Throwable) {
             logger.error("Failed to parse incoming request", t)
             limiter.release()
 
             ctx.writeAndFlush(error(t).toNettyResponse())
-            return
+
+            null
         }
 
-        val requestId = UUID.randomUUID().toString()
-        val contextualRequest = request.withContext(REQUEST_ID_MDC_KEY, requestId)
-
-        val mdcContext = MDCContext(mapOf(
-            METHOD_MDC_KEY to request.method.toString(),
-            PATH_MDC_KEY to request.uri.path,
-        ))
-
-        val serverJob = serverScope.launch(context = mdcContext) {
-            callHandler(contextualRequest, ctx)
-        }
-
-        cancelJobOnStop(serverJob, ctx)
-    }
-
-    private suspend fun callHandler(request: Request, ctx: ChannelHandlerContext) {
+    private suspend fun execute(request: Request, ctx: ChannelHandlerContext) {
         try {
-            val result = handler.call(request)
+            val result = handler.handle(request)
 
             ctx.writeAndFlush(result.toNettyResponse())
         } catch (c: CancellationException) {

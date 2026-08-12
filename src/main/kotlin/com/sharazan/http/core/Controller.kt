@@ -1,8 +1,6 @@
 package com.sharazan.http.core
 
-import org.koin.core.component.KoinComponent
-
-interface Controller: KoinComponent {
+interface Controller {
 
     val baseUrl: String
 

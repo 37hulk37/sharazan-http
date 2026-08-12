@@ -1,7 +1,8 @@
 package com.sharazan.http.server
 
 import com.sharazan.core.Lifecycle
-import com.sharazan.http.handler.CoroutineHttpHandler
+import com.sharazan.core.Handler
+import com.sharazan.core.pipeline.Pipeline
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelOption
@@ -16,7 +17,7 @@ import org.slf4j.LoggerFactory
 
 class CoroutineServer(
     private val port: Int,
-    private val handlerProvider: () -> CoroutineHttpHandler,
+    private val handler: Handler,
 ): Http4kServer, Lifecycle {
 
     private val logger = LoggerFactory.getLogger(CoroutineServer::class.java)
@@ -31,8 +32,6 @@ class CoroutineServer(
 
 
     override fun start(): Http4kServer = apply {
-        val handler = handlerProvider()
-
         val channel = getBootstrap(handler)
             .bind(port)
             .sync()
@@ -54,15 +53,19 @@ class CoroutineServer(
 
     override fun port(): Int = port
 
-    override fun started() {
+    override fun onStart() {
         start()
+    }
+
+    override fun onStop() {
+        close()
     }
 
     override fun close() {
         stop()
     }
 
-    private fun getBootstrap(handler: CoroutineHttpHandler): ServerBootstrap {
+    private fun getBootstrap(handler: Handler): ServerBootstrap {
         val bootstrap = ServerBootstrap()
 
         bootstrap.group(bossGroup, workerGroup)

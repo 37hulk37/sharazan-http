@@ -1,6 +1,6 @@
 package com.sharazan.http.server
 
-import com.sharazan.http.handler.CoroutineHttpHandler
+import com.sharazan.core.Handler
 import io.netty.channel.ChannelInitializer
 import io.netty.channel.socket.SocketChannel
 import io.netty.handler.codec.http.HttpObjectAggregator
@@ -10,7 +10,7 @@ import io.netty.handler.stream.ChunkedWriteHandler
 import kotlinx.coroutines.CoroutineScope
 
 class CoroutineChannelInitializer(
-    private val httpHandler: CoroutineHttpHandler,
+    private val httpHandler: Handler,
     private val serverScope: CoroutineScope
 ): ChannelInitializer<SocketChannel>() {
 
