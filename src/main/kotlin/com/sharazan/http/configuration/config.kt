@@ -2,6 +2,7 @@ package com.sharazan.http.configuration
 
 import com.sharazan.core.AppBuilder
 import com.sharazan.core.Handler
+import com.sharazan.core.Lifecycle
 import com.sharazan.core.pipeline.Interceptor
 import com.sharazan.core.pipeline.Phase
 import com.sharazan.core.properties.ConfigurationSource
@@ -11,6 +12,7 @@ import com.sharazan.http.handler.ServerHandler
 import com.sharazan.http.interceptor.LoggingInterceptor
 import com.sharazan.http.interceptor.RequestContextInterceptor
 import com.sharazan.http.server.CoroutineServer
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -43,7 +45,7 @@ fun AppBuilder.http(block: HttpProperties.() -> Unit) = apply {
 
         single {
             CoroutineServer(props.port, get<ServerHandler>())
-        }
+        } bind Lifecycle::class
     }
 
     addModule(httpModule)
@@ -61,12 +63,12 @@ fun AppBuilder.http() = apply {
             RequestContextInterceptor()
         } bind Interceptor::class
 
-        single {
+        single(named("http")) {
             Phase("http", listOf(
                 get<LoggingInterceptor>(),
                 get<RequestContextInterceptor>()
             ))
-        }
+        } bind Phase::class
         single {
             ServerHandler(getAll<Controller>(), get())
         } bind Handler::class
@@ -74,14 +76,14 @@ fun AppBuilder.http() = apply {
         single {
             val source = get<ConfigurationSource>()
 
-            source.get<HttpProperties>("http")
+            source.get<HttpProperties>("sharazan.http")
         }
 
         single {
             val props = get<HttpProperties>()
 
             CoroutineServer(props.port, get<ServerHandler>())
-        }
+        } bind Lifecycle::class
     }
 
     addModule(httpModule)

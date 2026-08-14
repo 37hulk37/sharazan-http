@@ -1,7 +1,8 @@
 package com.sharazan.http.core
 
+import org.http4k.core.Body
 import org.http4k.core.Request
-import org.http4k.format.Jackson.json
+import org.http4k.format.Jackson.auto
 
-fun <T> Request.getBody(): T
-    = this.json()
+inline fun <reified T : Any> Request.getBody(): T =
+    Body.auto<T>().toLens()(this)
