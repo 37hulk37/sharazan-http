@@ -1,13 +1,22 @@
 package com.sharazan.http.handler
 
 import com.sharazan.core.Handler
+import com.sharazan.core.getContext
+import com.sharazan.core.getContextOrNull
 import com.sharazan.core.pipeline.Pipeline
 import com.sharazan.http.core.Controller
 import com.sharazan.http.core.Route
 import com.sharazan.http.core.error
+import com.sharazan.logging.METHOD_MDC_KEY
+import com.sharazan.logging.PATH_MDC_KEY
+import com.sharazan.logging.REQUEST_ID_MDC_KEY
+import kotlinx.coroutines.slf4j.MDCContext
+import kotlinx.coroutines.withContext
 import org.http4k.core.Request
 import org.http4k.core.Response
+import org.http4k.routing.path
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 
 class ServerHandler(
     controllers: List<Controller>,
@@ -26,9 +35,21 @@ class ServerHandler(
 
         val processedRequest = pipeline.preProcess(request)
 
-        val response = handleRequest(processedRequest)
+        return withContext(getMdcCtx(processedRequest)) {
+            val response = handleRequest(processedRequest)
 
-        return pipeline.postProcess(processedRequest, response)
+            pipeline.postProcess(processedRequest, response)
+        }
+    }
+
+    private fun getMdcCtx(request: Request): MDCContext {
+        val requestId = request.getContext<String>("requestId")
+
+        return MDCContext(mapOf(
+            REQUEST_ID_MDC_KEY to requestId,
+            METHOD_MDC_KEY to request.method.name,
+            PATH_MDC_KEY to request.uri.path,
+        ))
     }
 
     private suspend fun handleRequest(request: Request): Response {

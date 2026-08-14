@@ -17,7 +17,7 @@ class LoggingInterceptor: Interceptor {
     }
 
 
-    override fun after(response: Response): Response {
+    override fun after(request: Request, response: Response): Response {
         logger.trace("Request has processed")
 
         return response

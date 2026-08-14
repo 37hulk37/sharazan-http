@@ -4,9 +4,6 @@ import com.sharazan.core.Handler
 import com.sharazan.core.pipeline.Pipeline
 import com.sharazan.core.withContext
 import com.sharazan.http.core.error
-import com.sharazan.logging.METHOD_MDC_KEY
-import com.sharazan.logging.PATH_MDC_KEY
-import com.sharazan.logging.REQUEST_ID_MDC_KEY
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.handler.codec.http.FullHttpRequest
@@ -14,7 +11,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.slf4j.MDCContext
 import kotlinx.coroutines.sync.Semaphore
 import org.http4k.core.*
 import org.slf4j.LoggerFactory
