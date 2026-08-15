@@ -5,7 +5,8 @@ import com.sharazan.core.Handler
 import com.sharazan.core.Lifecycle
 import com.sharazan.core.pipeline.Interceptor
 import com.sharazan.core.pipeline.Phase
-import com.sharazan.core.properties.ConfigurationSource
+import com.sharazan.core.source.ConfigurationSource
+import com.sharazan.core.source.get
 import com.sharazan.http.core.Controller
 import com.sharazan.http.core.EndpointRegistry
 import com.sharazan.http.handler.ServerHandler
@@ -19,7 +20,9 @@ import org.koin.dsl.module
 
 fun AppBuilder.http(block: HttpProperties.() -> Unit) = registerHttp { HttpProperties().apply(block) }
 
-fun AppBuilder.http() = registerHttp { get<ConfigurationSource>().get<HttpProperties>("sharazan.http") }
+fun AppBuilder.http() = registerHttp {
+    get<ConfigurationSource>().get<HttpProperties>("sharazan.http")
+}
 
 private fun AppBuilder.registerHttp(props: Scope.() -> HttpProperties) = apply {
     val httpModule = module {
