@@ -7,14 +7,23 @@ plugins {
 group = "com.sharazan"
 version = "1.0-SNAPSHOT"
 
+val gitVersion: String = try {
+    providers.exec {
+        commandLine("git", "describe", "--tags", "--abbrev=0")
+    }.standardOutput.asText.get().trim()
+} catch (e: Exception) {
+    "0.0.0-dev"
+}
+
 repositories {
     mavenCentral()
     mavenLocal()
+    maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {
-    implementation("com.sharazan:core:1.0-SNAPSHOT")
-    implementation("com.sharazan:logging:1.0-SNAPSHOT")
+    implementation("com.github.37hulk37:sharazan-core:1.0.0")
+    implementation("com.github.37hulk37:sharazan-logging:1.0.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.11.0")
     runtimeOnly("org.jetbrains.kotlin:kotlin-reflect:2.3.20-RC")
@@ -44,9 +53,9 @@ publishing {
     publications {
         create<MavenPublication>("publish") {
             from(components["java"])
-            groupId = project.group.toString()
-            artifactId = project.name
-            version = project.version.toString()
+            groupId = "com.github.37hulk37"
+            artifactId = "sharazan-${project.name}"
+            version = gitVersion
         }
     }
 
