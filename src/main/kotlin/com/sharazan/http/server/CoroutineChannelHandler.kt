@@ -1,8 +1,7 @@
 package com.sharazan.http.server
 
 import com.sharazan.core.Handler
-import com.sharazan.core.pipeline.Pipeline
-import com.sharazan.core.withContext
+import com.sharazan.core.exception.ApplicationException
 import com.sharazan.http.core.error
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
@@ -12,9 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
-import org.http4k.core.*
+import org.http4k.core.Request
 import org.slf4j.LoggerFactory
-import java.util.UUID
 
 class CoroutineChannelHandler(
     private val handler: Handler,
@@ -38,7 +36,7 @@ class CoroutineChannelHandler(
         }
 
         val request = getRequest(msg, ctx)
-            ?: throw RuntimeException("request is null")
+            ?: throw ApplicationException("request is null")
 
         val serverJob = serverScope.launch {
             execute(request, ctx)
@@ -54,8 +52,7 @@ class CoroutineChannelHandler(
             logger.error("Failed to parse incoming request", t)
             limiter.release()
 
-            ctx.writeAndFlush(error(t).toNettyResponse())
-
+            ctx.writeAndFlush(error("Failed to parse incoming request", t).toNettyResponse())
             null
         }
 
@@ -68,7 +65,8 @@ class CoroutineChannelHandler(
             throw c
         } catch (t: Throwable) {
             logger.error("Cancelling server job", t)
-            ctx.writeAndFlush(error(t).toNettyResponse())
+
+            ctx.writeAndFlush(error(t.message!!, ApplicationException(t)).toNettyResponse())
         } finally {
             limiter.release()
         }

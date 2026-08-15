@@ -35,8 +35,8 @@ private fun AppBuilder.registerHttp(props: Scope.() -> HttpProperties) = apply {
 
         single(named("http")) {
             Phase("http", listOf(
+                get<RequestContextInterceptor>(),
                 get<LoggingInterceptor>(),
-                get<RequestContextInterceptor>()
             ))
         }
 

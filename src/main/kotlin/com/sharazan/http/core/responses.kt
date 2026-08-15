@@ -1,51 +1,39 @@
 package com.sharazan.http.core
 
+import com.sharazan.core.exception.handleException
 import com.sharazan.http.Page
-import com.sharazan.http.error.ApiException
 import org.http4k.core.ContentType
 import org.http4k.core.Response
 import org.http4k.core.Status
 import org.http4k.format.Jackson
 import org.http4k.lens.contentType
-import org.slf4j.LoggerFactory
-
-private val logger = LoggerFactory.getLogger("com.sharazan.http.core.Responses")
 
 fun <T: Any> ok(body: T): Response
-    = Response(Status.OK)
-        .contentType(ContentType.APPLICATION_JSON)
-        .body(Jackson.asFormatString(body))
+    = response(body)
 
 
-fun <T: Any> okWithPage(
+fun <T: Any> ok(
      values: Collection<T>,
      page: Int = 0,
      size: Int = values.size,
      totalElements: Long = values.size.toLong(),
-): Response
-    = Response(Status.OK)
-        .contentType(ContentType.APPLICATION_JSON)
-        .body(Jackson.asFormatString(Page(page, size, totalElements, values)))
+): Response = response(Page(page, size, totalElements, values))
 
 
 fun ok(): Response
     = Response(Status.OK)
 
 
-fun error(t: Throwable): Response {
-    val apiException = t as? ApiException
+fun error(
+    message: String,
+    t: Throwable? = null
+): Response {
+    val response = handleException(message, t)
 
-    if (apiException == null) {
-        logger.error("Unhandled exception", t)
-    }
-
-    return Response(apiException?.status ?: Status.BAD_REQUEST)
-        .contentType(ContentType.APPLICATION_JSON)
-        .body(Jackson.asFormatString(apiException?.message ?: "Something went wrong"))
+    return response(response, Status(response.status, ""))
 }
 
-
-fun error(cause: String): Response
-    = Response(Status.BAD_REQUEST)
+private fun <T: Any> response(body: T, status: Status = Status.OK): Response
+    = Response(status)
         .contentType(ContentType.APPLICATION_JSON)
-        .body(Jackson.asFormatString(cause))
+        .body(Jackson.asFormatString(body))
