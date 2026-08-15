@@ -13,45 +13,15 @@ import com.sharazan.http.interceptor.LoggingInterceptor
 import com.sharazan.http.interceptor.RequestContextInterceptor
 import com.sharazan.http.server.CoroutineServer
 import org.koin.core.qualifier.named
+import org.koin.core.scope.Scope
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-fun AppBuilder.http(block: HttpProperties.() -> Unit) = apply {
-    val props = HttpProperties().apply(block)
+fun AppBuilder.http(block: HttpProperties.() -> Unit) = registerHttp { HttpProperties().apply(block) }
 
-    val httpModule = module {
-        single {
-            LoggingInterceptor()
-        } bind Interceptor::class
+fun AppBuilder.http() = registerHttp { get<ConfigurationSource>().get<HttpProperties>("sharazan.http") }
 
-        single { EndpointRegistry(getAll<Controller>()) }
-
-        single {
-            RequestContextInterceptor()
-        } bind Interceptor::class
-
-        single {
-            Phase("http", listOf(
-                get<LoggingInterceptor>(),
-                get<RequestContextInterceptor>()
-            ))
-        }
-        single {
-            props
-        }
-        single {
-            ServerHandler(getAll<Controller>(), get())
-        } bind Handler::class
-
-        single {
-            CoroutineServer(props.port, get<ServerHandler>())
-        } bind Lifecycle::class
-    }
-
-    addModule(httpModule)
-}
-
-fun AppBuilder.http() = apply {
+private fun AppBuilder.registerHttp(props: Scope.() -> HttpProperties) = apply {
     val httpModule = module {
         single {
             LoggingInterceptor()
@@ -68,21 +38,16 @@ fun AppBuilder.http() = apply {
                 get<LoggingInterceptor>(),
                 get<RequestContextInterceptor>()
             ))
-        } bind Phase::class
+        }
+
+        single { props() }
+
         single {
             ServerHandler(getAll<Controller>(), get())
         } bind Handler::class
 
         single {
-            val source = get<ConfigurationSource>()
-
-            source.get<HttpProperties>("sharazan.http")
-        }
-
-        single {
-            val props = get<HttpProperties>()
-
-            CoroutineServer(props.port, get<ServerHandler>())
+            CoroutineServer(get<HttpProperties>().port, get<ServerHandler>())
         } bind Lifecycle::class
     }
 
