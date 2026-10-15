@@ -14,6 +14,10 @@ data class Route(
 
     private val uriTemplate: UriTemplate = UriTemplate.from(fullPath.path)
 
+    val wildcardSegments: Int = fullPath.path
+        .split("/")
+        .count { it.startsWith("{") }
+
     fun matches(request: Request): Boolean =
         request.method == method && uriTemplate.matches(request.uri.path)
 

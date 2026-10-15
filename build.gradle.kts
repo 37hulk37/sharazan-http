@@ -22,7 +22,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.37hulk37:sharazan-core:1.0.2")
+    implementation("com.github.37hulk37:sharazan-core:1.0.3")
     implementation("com.github.37hulk37:sharazan-logging:1.0.1")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.11.0")

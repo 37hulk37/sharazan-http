@@ -24,8 +24,7 @@ class ServerHandler(
     }
 
     private fun findRoute(request: Request): Route? =
-        routes.firstOrNull {
-            it.matches(request)
-        }
+        routes.filter { it.matches(request) }
+            .minByOrNull { it.wildcardSegments }
 
 }
